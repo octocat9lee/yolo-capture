@@ -1,3 +1,9 @@
+*.log
+*.jpg
+*.txt
+/bin/
+/build/
+
 # Prerequisites
 *.d
 

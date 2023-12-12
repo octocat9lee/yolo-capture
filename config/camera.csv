@@ -1,0 +1,5 @@
+﻿model,code,url
+yolov5s,52323310123,rtsp://admin:admin12345@10.0.5.64:554/h264/ch33/main/av_stream
+yolov5s,52323310124,rtsp://admin:admin12345@10.0.5.64:554/h264/ch33/main/av_stream
+yolov5s,52323310125,rtsp://admin:xlgc8888@10.0.5.195:554/h264/ch33/main/av_stream
+yolov5s,52323310126,rtsp://admin:xlgc8888@10.0.5.195:554/h264/ch33/main/av_stream
