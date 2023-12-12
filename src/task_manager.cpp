@@ -18,7 +18,7 @@ void TaskManager::Start()
     YoloCaptureConfig config;
     config.is_cuda = true;
     config.ffmepg_props = props;
-    config.device_code = std::string("51231132");
+    config.device_code = std::string("00000000");
     config.stream_url = std::string("rtsp://admin:admin12345@10.0.5.64:554/h264/ch33/main/av_stream");
 
     YoloCapturePtr cap = std::make_shared<YoloCapture>();
@@ -27,7 +27,7 @@ void TaskManager::Start()
 
     YoloCapturePtr cap2 = std::make_shared<YoloCapture>();
     yolo_captures_.push_back(cap2);
-    config.device_code = std::string("51231122");
+    config.device_code = std::string("66666666");
     config.stream_url = std::string("rtsp://admin:xlgc8888@10.0.5.195:554/h264/ch33/main/av_stream");
     cap2->Start(config);
 }

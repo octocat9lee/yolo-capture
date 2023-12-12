@@ -28,6 +28,12 @@ int main(int argc, char **argv)
     }
     manager.Stop();
 
+    for(int i = 0; i < 5; ++i)
+    {
+        SPD_TRACE("main continue running");
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
     SPD_TRACE("ended main yolo capture");
     return 0;
 }

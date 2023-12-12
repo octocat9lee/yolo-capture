@@ -49,7 +49,7 @@ void YoloCapture::LoadClassList()
     }
 }
 
-void YoloCapture::LoadNet(bool is_cuda)
+void YoloCapture::LoadNet(cv::dnn::Net &net, bool is_cuda)
 {
     if (is_cuda)
     {
@@ -59,30 +59,26 @@ void YoloCapture::LoadNet(bool is_cuda)
         cv::cuda::setDevice(device_count - 1);
     }
 
-    net_ = cv::dnn::readNet("../config/yolov5s.onnx");
+    net = cv::dnn::readNet("../config/yolov5s.onnx");
     if (is_cuda)
     {
         SPD_DEBUG("running on CUDA");
-        net_.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
-        net_.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA_FP16);
+        net.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
+        net.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA_FP16);
     }
     else
     {
         SPD_DEBUG("running on CPU");
-        net_.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
-        net_.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
+        net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
+        net.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
     }
 }
 
 void YoloCapture::SaveFrameAsJpg(const cv::Mat &frame)
 {
-    // 获取当前时间点
     auto time_point = std::chrono::system_clock::now();
-    // 将时间点转换为毫秒
     auto ms = std::chrono::time_point_cast<std::chrono::milliseconds>(time_point);
-    // 获取时间戳
     auto time_since_epoch = ms.time_since_epoch();
-    // 将时间戳转换为毫秒
     long long milliseconds = time_since_epoch.count();
     std::ostringstream oss;
     oss << std::setw(15) << std::setfill('0') << std::to_string(milliseconds) << ".jpg";
@@ -100,20 +96,17 @@ cv::Mat YoloCapture::FormatYolov5(const cv::Mat &source)
     return result;
 }
 
-void YoloCapture::Detect(const cv::Mat &image, std::vector<YoloDetection> &output)
+void YoloCapture::Detect(cv::dnn::Net &net, const cv::Mat &image, std::vector<YoloDetection> &output)
 {
     cv::Mat blob;
-
     auto input_image = FormatYolov5(image);
     cv::dnn::blobFromImage(input_image, blob, 1. / 255., cv::Size(INPUT_WIDTH, INPUT_HEIGHT), cv::Scalar(), true, false);
-    net_.setInput(blob);
+    net.setInput(blob);
     std::vector<cv::Mat> outputs;
-    net_.forward(outputs, net_.getUnconnectedOutLayersNames());
+    net.forward(outputs, net.getUnconnectedOutLayersNames());
 
     float x_factor = input_image.cols / INPUT_WIDTH;
     float y_factor = input_image.rows / INPUT_HEIGHT;
-
-    float *data = (float *)outputs[0].data;
 
     const int dimensions = 85;
     const int rows = 25200;
@@ -122,9 +115,9 @@ void YoloCapture::Detect(const cv::Mat &image, std::vector<YoloDetection> &outpu
     std::vector<float> confidences;
     std::vector<cv::Rect> boxes;
 
+    float *data = (float *)outputs[0].data;
     for (int i = 0; i < rows; ++i)
     {
-
         float confidence = data[4];
         if (confidence >= CONFIDENCE_THRESHOLD)
         {
@@ -192,8 +185,12 @@ void YoloCapture::Stop()
 
 void YoloCapture::Run()
 {
+    // FIXME:
+    // If adjust the net parameter as the class member, the program will crash.
+    // terminate called after throwing an instance of 'cv::dnn::cuda4dnn::csl::CUDAException'
+    cv::dnn::Net net;
     LoadClassList();
-    LoadNet(yolo_config_.is_cuda);
+    LoadNet(net, yolo_config_.is_cuda);
 
     SPD_DEBUG("stream url: {}", yolo_config_.stream_url);
     cv::VideoCapture capture(yolo_config_.stream_url, cv::CAP_FFMPEG, yolo_config_.ffmepg_props);
@@ -217,16 +214,17 @@ void YoloCapture::Run()
             continue;
         }
         skip_frames++;
-        if (skip_frames == 20)
+        if (skip_frames == 10)
         {
             skip_frames = 0;
             total_frames++;
             std::vector<YoloDetection> detections;
-            Detect(frame, detections);
+            Detect(net, frame, detections);
             DrawDetection(frame, detections);
             SPD_DEBUG("device code: {}, detect frame: {}", yolo_config_.device_code, total_frames);
         }
     }
-    SPD_DEBUG("yolo capture ended, code: {}, total detect frame: {}", yolo_config_.device_code, total_frames);
     
+    capture.release();
+    SPD_DEBUG("yolo capture ended, code: {}, total detect frame: {}", yolo_config_.device_code, total_frames);
 }

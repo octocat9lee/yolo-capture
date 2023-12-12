@@ -6,7 +6,6 @@
 #include <thread>
 #include <string>
 
-
 class YoloCapture
 {
 public:
@@ -16,11 +15,11 @@ public:
 
     void LoadClassList();
 
-    void LoadNet(bool is_cuda);
+    void LoadNet(cv::dnn::Net &net, bool is_cuda);
 
     cv::Mat FormatYolov5(const cv::Mat &source);
 
-    void Detect(const cv::Mat &image, std::vector<YoloDetection> &output);
+    void Detect(cv::dnn::Net &net, const cv::Mat &image, std::vector<YoloDetection> &output);
 
     void DrawDetection(const cv::Mat &image, const std::vector<YoloDetection> &detections);
 
@@ -35,7 +34,6 @@ private:
 
 private:
     std::vector<std::string> class_name_;
-    cv::dnn::Net net_;
     YoloCaptureConfig yolo_config_;
     std::thread cap_thread_;
     bool is_capturing_;
