@@ -3,7 +3,6 @@
 #include "spd_log.h"
 
 #include <random>
-#include <vector>
 #include <algorithm>
 
 void CameraConfig::Init()

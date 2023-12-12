@@ -1,4 +1,5 @@
-#include "common_type.h"
+#ifndef CAMERA_CONFIG_H
+#define CAMERA_CONFIG_H
 
 #include "common_type.h"
 
@@ -27,3 +28,5 @@ private:
 private:
     std::vector<CameraInfos> camera_list_;
 };
+
+#endif // CAMERA_CONFIG_H
