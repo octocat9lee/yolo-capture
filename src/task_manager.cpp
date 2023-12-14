@@ -1,12 +1,9 @@
 #include "task_manager.h"
 #include "spd_log.h"
 
-TaskManager::TaskManager()
-{
-}
+TaskManager::TaskManager() {}
 
-void TaskManager::Start()
-{
+void TaskManager::Start() {
     // https://forum.opencv.org/t/videocapture-open-lag-with-rtsp/10855
     std::vector<int> props;
     props.push_back(cv::CAP_PROP_OPEN_TIMEOUT_MSEC);
@@ -32,16 +29,12 @@ void TaskManager::Start()
     cap2->Start(config);
 }
 
-void TaskManager::Stop()
-{
+void TaskManager::Stop() {
     SPD_TRACE("stop all yolo captures");
-    for (auto &cap : yolo_captures_)
-    {
+    for (auto &cap : yolo_captures_) {
         cap->Stop();
     }
     yolo_captures_.clear();
 }
 
-TaskManager::~TaskManager()
-{
-}
+TaskManager::~TaskManager() {}

@@ -3,11 +3,9 @@
 
 #include "common_type.h"
 
-class CameraConfig
-{
+class CameraConfig {
 public:
-    static CameraConfig &Instance()
-    {
+    static CameraConfig &Instance() {
         static CameraConfig instance;
         return instance;
     }

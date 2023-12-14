@@ -5,8 +5,7 @@
 
 #include <memory>
 
-class TaskManager
-{
+class TaskManager {
     using YoloCapturePtr = std::shared_ptr<YoloCapture>;
 
 public:

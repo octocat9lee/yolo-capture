@@ -1,13 +1,12 @@
 #include <chrono>
 #include <thread>
 
-#include "spd_log.h"
 #include "camera_config.h"
 #include "capture_config.h"
+#include "spd_log.h"
 #include "task_manager.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     CaptureConfig::Instance().Init();
 
     SpdLogConfig log_config = CaptureConfig::Instance().GetSpdLogConfig();
@@ -22,14 +21,12 @@ int main(int argc, char **argv)
 
     TaskManager manager;
     manager.Start();
-    for(int i = 0; i < 10; ++i)
-    {
+    for (int i = 0; i < 10; ++i) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     manager.Stop();
 
-    for(int i = 0; i < 5; ++i)
-    {
+    for (int i = 0; i < 5; ++i) {
         SPD_TRACE("main continue running");
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }

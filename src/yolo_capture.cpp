@@ -9,50 +9,37 @@ const float SCORE_THRESHOLD = 0.2;
 const float NMS_THRESHOLD = 0.4;
 const float CONFIDENCE_THRESHOLD = 0.4;
 
-const std::vector<cv::Scalar> colors = {
-    cv::Scalar(255, 255, 0),
-    cv::Scalar(0, 255, 0),
-    cv::Scalar(0, 255, 255),
-    cv::Scalar(255, 0, 0)};
+const std::vector<cv::Scalar> colors = { cv::Scalar(255, 255, 0), cv::Scalar(0, 255, 0), cv::Scalar(0, 255, 255), cv::Scalar(255, 0, 0) };
 
-YoloCapture::YoloCapture() : is_capturing_(false)
-{
-}
+YoloCapture::YoloCapture()
+    : is_capturing_(false) {}
 
-YoloCapture::~YoloCapture()
-{
+YoloCapture::~YoloCapture() {
     SPD_TRACE("destructor yolo capture, device code: {}", yolo_config_.device_code);
-    if (is_capturing_)
-    {
+    if (is_capturing_) {
         Stop();
     }
 }
 
-void YoloCapture::Start(const YoloCaptureConfig &config)
-{
+void YoloCapture::Start(const YoloCaptureConfig &config) {
     yolo_config_ = config;
-    if (!is_capturing_)
-    {
+    if (!is_capturing_) {
         is_capturing_ = true;
         SPD_TRACE("start yolo capture, device code: {}", yolo_config_.device_code);
         cap_thread_ = std::thread(&YoloCapture::Run, this);
     }
 }
 
-void YoloCapture::LoadClassList()
-{
+void YoloCapture::LoadClassList() {
     std::ifstream ifs("../config/classes.txt");
     std::string line;
-    while (getline(ifs, line))
-    {
+    while (getline(ifs, line)) {
         class_name_.push_back(line);
     }
 }
 
-void YoloCapture::LoadNet(cv::dnn::Net &net, bool is_cuda)
-{
-    if (is_cuda)
-    {
+void YoloCapture::LoadNet(cv::dnn::Net &net, bool is_cuda) {
+    if (is_cuda) {
         // https://github.com/opencv/opencv/issues/17852
         int device_count = cv::cuda::getCudaEnabledDeviceCount();
         SPD_DEBUG("cuda device count: {}", device_count);
@@ -60,22 +47,18 @@ void YoloCapture::LoadNet(cv::dnn::Net &net, bool is_cuda)
     }
 
     net = cv::dnn::readNet("../config/yolov5s.onnx");
-    if (is_cuda)
-    {
+    if (is_cuda) {
         SPD_DEBUG("running on CUDA");
         net.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
         net.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA_FP16);
-    }
-    else
-    {
+    } else {
         SPD_DEBUG("running on CPU");
         net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
         net.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
     }
 }
 
-void YoloCapture::SaveFrameAsJpg(const cv::Mat &frame)
-{
+void YoloCapture::SaveFrameAsJpg(const cv::Mat &frame) {
     auto time_point = std::chrono::system_clock::now();
     auto ms = std::chrono::time_point_cast<std::chrono::milliseconds>(time_point);
     auto time_since_epoch = ms.time_since_epoch();
@@ -86,8 +69,7 @@ void YoloCapture::SaveFrameAsJpg(const cv::Mat &frame)
     cv::imwrite(filename, frame);
 }
 
-cv::Mat YoloCapture::FormatYolov5(const cv::Mat &source)
-{
+cv::Mat YoloCapture::FormatYolov5(const cv::Mat &source) {
     int col = source.cols;
     int row = source.rows;
     int _max = MAX(col, row);
@@ -96,8 +78,7 @@ cv::Mat YoloCapture::FormatYolov5(const cv::Mat &source)
     return result;
 }
 
-void YoloCapture::Detect(cv::dnn::Net &net, const cv::Mat &image, std::vector<YoloDetection> &output)
-{
+void YoloCapture::Detect(cv::dnn::Net &net, const cv::Mat &image, std::vector<YoloDetection> &output) {
     cv::Mat blob;
     auto input_image = FormatYolov5(image);
     cv::dnn::blobFromImage(input_image, blob, 1. / 255., cv::Size(INPUT_WIDTH, INPUT_HEIGHT), cv::Scalar(), true, false);
@@ -116,18 +97,15 @@ void YoloCapture::Detect(cv::dnn::Net &net, const cv::Mat &image, std::vector<Yo
     std::vector<cv::Rect> boxes;
 
     float *data = (float *)outputs[0].data;
-    for (int i = 0; i < rows; ++i)
-    {
+    for (int i = 0; i < rows; ++i) {
         float confidence = data[4];
-        if (confidence >= CONFIDENCE_THRESHOLD)
-        {
+        if (confidence >= CONFIDENCE_THRESHOLD) {
             float *classes_scores = data + 5;
             cv::Mat scores(1, class_name_.size(), CV_32FC1, classes_scores);
             cv::Point class_id;
             double max_class_score;
             minMaxLoc(scores, 0, &max_class_score, 0, &class_id);
-            if (max_class_score > SCORE_THRESHOLD)
-            {
+            if (max_class_score > SCORE_THRESHOLD) {
                 confidences.push_back(confidence);
                 class_ids.push_back(class_id.x);
                 float x = data[0];
@@ -146,8 +124,7 @@ void YoloCapture::Detect(cv::dnn::Net &net, const cv::Mat &image, std::vector<Yo
 
     std::vector<int> nms_result;
     cv::dnn::NMSBoxes(boxes, confidences, SCORE_THRESHOLD, NMS_THRESHOLD, nms_result);
-    for (int i = 0; i < nms_result.size(); i++)
-    {
+    for (int i = 0; i < nms_result.size(); i++) {
         int idx = nms_result[i];
         YoloDetection result;
         result.class_id = class_ids[idx];
@@ -157,10 +134,8 @@ void YoloCapture::Detect(cv::dnn::Net &net, const cv::Mat &image, std::vector<Yo
     }
 }
 
-void YoloCapture::DrawDetection(const cv::Mat &frame, const std::vector<YoloDetection> &detections)
-{
-    for (int i = 0; i < detections.size(); ++i)
-    {
+void YoloCapture::DrawDetection(const cv::Mat &frame, const std::vector<YoloDetection> &detections) {
+    for (int i = 0; i < detections.size(); ++i) {
         auto detection = detections[i];
         auto box = detection.box;
         auto classId = detection.class_id;
@@ -172,19 +147,16 @@ void YoloCapture::DrawDetection(const cv::Mat &frame, const std::vector<YoloDete
     // SaveFrameAsJpg(frame);
 }
 
-void YoloCapture::Stop()
-{
+void YoloCapture::Stop() {
     SPD_TRACE("stop yolo capture, device code: {}", yolo_config_.device_code);
-    if (is_capturing_)
-    {
+    if (is_capturing_) {
         is_capturing_ = false;
         SPD_TRACE("join yolo capture ended, device code: {}", yolo_config_.device_code);
         cap_thread_.join();
     }
 }
 
-void YoloCapture::Run()
-{
+void YoloCapture::Run() {
     // FIXME:
     // If adjust the net parameter as the class member, the program will crash.
     // terminate called after throwing an instance of 'cv::dnn::cuda4dnn::csl::CUDAException'
@@ -194,8 +166,7 @@ void YoloCapture::Run()
 
     SPD_DEBUG("stream url: {}", yolo_config_.stream_url);
     cv::VideoCapture capture(yolo_config_.stream_url, cv::CAP_FFMPEG, yolo_config_.ffmepg_props);
-    if (!capture.isOpened())
-    {
+    if (!capture.isOpened()) {
         SPD_ERROR("open stream url failed: {}", yolo_config_.stream_url);
     }
 
@@ -205,17 +176,14 @@ void YoloCapture::Run()
     int total_frames = 0;
 
     cv::Mat frame;
-    while (is_capturing_)
-    {
+    while (is_capturing_) {
         capture.read(frame);
-        if (frame.empty())
-        {
+        if (frame.empty()) {
             SPD_DEBUG("read stream url failed: {}", yolo_config_.stream_url);
             continue;
         }
         skip_frames++;
-        if (skip_frames == 10)
-        {
+        if (skip_frames == 10) {
             skip_frames = 0;
             total_frames++;
             std::vector<YoloDetection> detections;
@@ -224,7 +192,7 @@ void YoloCapture::Run()
             SPD_DEBUG("device code: {}, detect frame: {}", yolo_config_.device_code, total_frames);
         }
     }
-    
+
     capture.release();
     SPD_DEBUG("yolo capture ended, code: {}, total detect frame: {}", yolo_config_.device_code, total_frames);
 }

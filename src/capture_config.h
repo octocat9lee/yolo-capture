@@ -4,13 +4,11 @@
 #include "common_type.h"
 #include "nlohmann/json.hpp"
 
-class CaptureConfig
-{
+class CaptureConfig {
     using json = nlohmann::json;
 
 public:
-    static CaptureConfig &Instance()
-    {
+    static CaptureConfig &Instance() {
         static CaptureConfig instance;
         return instance;
     }

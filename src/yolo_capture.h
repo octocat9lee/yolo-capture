@@ -3,11 +3,10 @@
 
 #include "common_type.h"
 
-#include <thread>
 #include <string>
+#include <thread>
 
-class YoloCapture
-{
+class YoloCapture {
 public:
     YoloCapture();
 
